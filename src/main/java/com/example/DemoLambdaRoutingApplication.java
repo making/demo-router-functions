@@ -47,8 +47,6 @@ public class DemoLambdaRoutingApplication {
 														.convertToMono(String.class)),
 										String.class)))
 						.andOther(route(POST("/json"), req -> {
-							// DOES NOT WORK AT THIS MOMENT
-
 							Mono<Person> personMono = req.body()
 									.convertToMono(Person.class);
 							return Response.ok().stream(personMono, Person.class);
