@@ -7,17 +7,20 @@ import reactor.core.publisher.Mono;
 
 import java.util.Optional;
 
+import static org.springframework.web.reactive.function.BodyPopulators.*;
+
 public class PersonHandler {
 
 	public Response<?> findPerson(Request req) {
 		Optional<String> id = req.pathVariable("id");
-		return id.isPresent() ? Response.ok()
-				.stream(Mono.just(new Person("P" + id.get(), 10)), Person.class)
+		return id.isPresent()
+				? Response.ok().body(fromPublisher(
+						Mono.just(new Person("P" + id.get(), 10)), Person.class))
 				: Response.badRequest().build();
 	}
 
 	public Response<?> findAll(Request req) {
-		return Response.ok().stream(Flux.just(new Person("p1", 11), new Person("p2", 12)),
-				Person.class);
+		return Response.ok().body(fromPublisher(
+				Flux.just(new Person("p1", 11), new Person("p2", 12)), Person.class));
 	}
 }

@@ -4,71 +4,76 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.http.server.reactive.ReactorHttpHandlerAdapter;
 import org.springframework.web.reactive.function.Response;
-import org.springframework.web.reactive.function.Router;
-import org.springframework.web.reactive.function.RoutingFunction;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.HttpServer;
 
 import java.time.Duration;
 
-import static org.springframework.web.reactive.function.RequestPredicates.GET;
-import static org.springframework.web.reactive.function.RequestPredicates.POST;
-import static org.springframework.web.reactive.function.Router.route;
+import static org.springframework.web.reactive.function.RequestPredicates.*;
+import static org.springframework.web.reactive.function.RouterFunctions.*;
+import static org.springframework.web.reactive.function.BodyPopulators.*;
+import static org.springframework.web.reactive.function.BodyExtractors.*;
+
+import org.springframework.web.reactive.function.RouterFunction;
 
 public class DemoLambdaRoutingApplication {
 
 	public static void main(String[] args) throws Exception {
 
 		// Simple
-		RoutingFunction<?> route = route(GET("/"), req -> Response.ok().body("Sample"))
-				.and(route(GET("/hello"), req -> Response.ok().body("Hello World!")))
-				.and(route(GET("/bar"),
-						req -> Response.ok()
-								.body("query[foo] = "
-										+ req.queryParam("foo").orElse("???"))))
-				.and(route(GET("/bar/{foo}"),
-						req -> Response.ok()
-								.body("path[foo] = "
-										+ req.pathVariable("foo").orElse("??"))))
-				.andOther(
-						route(GET("/json"),
+		RouterFunction<?> route = route(GET("/"),
+				req -> Response.ok().body(fromObject("Sample")))
+						.and(route(GET("/hello"),
+								req -> Response.ok().body(fromObject("Hello World!"))))
+						.and(route(GET("/bar"),
+								req -> Response.ok()
+										.body(fromObject("query[foo] = "
+												+ req.queryParam("foo").orElse("???")))))
+						.and(route(GET("/bar/{foo}"),
+								req -> Response.ok()
+										.body(fromObject("path[foo] = "
+												+ req.pathVariable("foo").orElse("??")))))
+						.and(route(GET("/json"),
 								req -> Response.ok()
 										.contentType(MediaType.APPLICATION_JSON)
-										.body(new Person("John", 30))));
+										.body(fromObject(new Person("John", 30)))));
 
 		// Reactive
-		RoutingFunction<?> reactiveRoute = route(GET("/reactive"),
-				req -> Response.ok().stream(Flux.just("Hello", "World"), String.class))
-						.and(route(POST("/echo"),
-								req -> Response.ok().stream(
-										Flux.just("Hi ")
-												.concatWith(req.body()
-														.convertToMono(String.class)),
-										String.class)))
-						.andOther(route(POST("/json"), req -> {
-							Mono<Person> personMono = req.body()
-									.convertToMono(Person.class);
-							return Response.ok().stream(personMono, Person.class);
-						}));
+		RouterFunction<?> reactiveRoute = route(GET("/reactive"),
+				req -> Response.ok()
+						.body(fromPublisher(Flux.just("Hello", "World"), String.class)))
+								.and(route(POST("/echo"),
+										req -> Response.ok()
+												.body(fromPublisher(
+														Flux.just("Hi ")
+																.concatWith(req.body(
+																		toMono(String.class))),
+														String.class))))
+								.and(route(POST("/json"), req -> {
+									Mono<Person> personMono = req
+											.body(toMono(Person.class));
+									return Response.ok().body(
+											fromPublisher(personMono, Person.class));
+								}));
 
 		// Server Sent Event
-		RoutingFunction<?> sseRoute = route(GET("/sse"),
-				req -> Response
-						.ok().sse(
+		RouterFunction<?> sseRoute = route(GET("/sse"),
+				req -> Response.ok()
+						.body(fromServerSentEvents(
 								Flux.interval(Duration.ofSeconds(1))
 										.map(l -> ServerSentEvent.builder(l)
 												.id(String.valueOf(l)).comment("foo")
-												.build())));
+												.build()))));
 
 		// Method Reference
 		PersonHandler ph = new PersonHandler();
-		RoutingFunction<?> methodReference = route(GET("/person/{id}"), ph::findPerson)
-				.andOther(route(GET("/person"), ph::findAll));
+		RouterFunction<?> methodReference = route(GET("/person/{id}"), ph::findPerson)
+				.and(route(GET("/person"), ph::findAll));
 
 		ReactorHttpHandlerAdapter httpHandlerAdapter = new ReactorHttpHandlerAdapter(
-				Router.toHttpHandler(route.andOther(reactiveRoute).andOther(sseRoute)
-						.andOther(methodReference).filter((req, next) -> {
+				toHttpHandler(route.and(reactiveRoute).and(sseRoute).and(methodReference)
+						.filter((req, next) -> {
 							System.out.println("==== Before... " + req.uri());
 							Response<?> res = next.handle(req);
 							System.out.println("==== After... " + req.uri());
