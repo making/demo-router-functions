@@ -63,6 +63,7 @@ public class DemoLambdaRoutingApplication {
 				req -> Response.ok()
 						.body(fromServerSentEvents(
 								Flux.interval(Duration.ofSeconds(1))
+										.take(10)
 										.map(l -> ServerSentEvent.builder(l)
 												.id(String.valueOf(l)).comment("foo")
 												.build()))));
