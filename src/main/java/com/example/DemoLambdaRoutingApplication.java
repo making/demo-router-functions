@@ -9,6 +9,7 @@ import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.HttpServer;
 
 import java.time.Duration;
+import java.util.Optional;
 
 import static org.springframework.web.reactive.function.RequestPredicates.*;
 import static org.springframework.web.reactive.function.RouterFunctions.*;
@@ -80,7 +81,9 @@ public class DemoLambdaRoutingApplication {
 							return res;
 						})));
 
-		HttpServer httpServer = HttpServer.create(8080);
+		int port = Optional.ofNullable(System.getenv("PORT")).map(Integer::parseInt)
+				.orElse(8080);
+		HttpServer httpServer = HttpServer.create("0.0.0.0", port);
 		httpServer.startAndAwait(httpHandlerAdapter);
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			System.out.println("Shut down ...");
