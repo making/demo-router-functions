@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Optional;
 
-import static org.springframework.web.reactive.function.BodyPopulators.*;
+import static org.springframework.web.reactive.function.BodyInserters.*;
 
 public class PersonHandler {
 

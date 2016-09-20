@@ -12,7 +12,7 @@ import java.time.Duration;
 
 import static org.springframework.web.reactive.function.RequestPredicates.*;
 import static org.springframework.web.reactive.function.RouterFunctions.*;
-import static org.springframework.web.reactive.function.BodyPopulators.*;
+import static org.springframework.web.reactive.function.BodyInserters.*;
 import static org.springframework.web.reactive.function.BodyExtractors.*;
 
 import org.springframework.web.reactive.function.RouterFunction;
