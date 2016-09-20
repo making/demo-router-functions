@@ -21,7 +21,17 @@ import org.springframework.web.reactive.function.RouterFunction;
 public class DemoLambdaRoutingApplication {
 
 	public static void main(String[] args) throws Exception {
+		int port = Optional.ofNullable(System.getenv("PORT")).map(Integer::parseInt)
+				.orElse(8080);
+		HttpServer httpServer = HttpServer.create("0.0.0.0", port);
+		httpServer.startAndAwait(httpHandlerAdapter());
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			System.out.println("Shut down ...");
+			httpServer.shutdown();
+		}));
+	}
 
+	static ReactorHttpHandlerAdapter httpHandlerAdapter() {
 		// Simple
 		RouterFunction<?> route = route(GET("/"),
 				req -> Response.ok().body(fromObject("Sample")))
@@ -62,8 +72,7 @@ public class DemoLambdaRoutingApplication {
 		RouterFunction<?> sseRoute = route(GET("/sse"),
 				req -> Response.ok()
 						.body(fromServerSentEvents(
-								Flux.interval(Duration.ofSeconds(1))
-										.take(10)
+								Flux.interval(Duration.ofSeconds(1)).take(10)
 										.map(l -> ServerSentEvent.builder(l)
 												.id(String.valueOf(l)).comment("foo")
 												.build()))));
@@ -81,14 +90,6 @@ public class DemoLambdaRoutingApplication {
 							System.out.println("==== After... " + req.uri());
 							return res;
 						})));
-
-		int port = Optional.ofNullable(System.getenv("PORT")).map(Integer::parseInt)
-				.orElse(8080);
-		HttpServer httpServer = HttpServer.create("0.0.0.0", port);
-		httpServer.startAndAwait(httpHandlerAdapter);
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			System.out.println("Shut down ...");
-			httpServer.shutdown();
-		}));
+		return httpHandlerAdapter;
 	}
 }
