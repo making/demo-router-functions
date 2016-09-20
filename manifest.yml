@@ -1,5 +1,7 @@
 applications:
 - name: demo-lambda-routing
-  memory: 256m
+  memory: 96m
   buildpack: java_buildpack
   path: target/demo-lambda-routing-0.0.1-SNAPSHOT.jar
+  env:
+    JBP_CONFIG_OPEN_JDK_JRE: '[memory_calculator: {memory_sizes: {metaspace: 20m, stack: 228k}, memory_heuristics: {heap: 95, native: 5}}]'
