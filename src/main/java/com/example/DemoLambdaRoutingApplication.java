@@ -2,6 +2,7 @@ package com.example;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.http.server.reactive.ReactorHttpHandlerAdapter;
 import org.springframework.web.reactive.function.Response;
 import reactor.core.publisher.Flux;
@@ -24,14 +25,14 @@ public class DemoLambdaRoutingApplication {
 		int port = Optional.ofNullable(System.getenv("PORT")).map(Integer::parseInt)
 				.orElse(8080);
 		HttpServer httpServer = HttpServer.create("0.0.0.0", port);
-		httpServer.startAndAwait(httpHandlerAdapter());
+		httpServer.startAndAwait(new ReactorHttpHandlerAdapter(httpHandler()));
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			System.out.println("Shut down ...");
 			httpServer.shutdown();
 		}));
 	}
 
-	static ReactorHttpHandlerAdapter httpHandlerAdapter() {
+	static HttpHandler httpHandler() {
 		// Simple
 		RouterFunction<?> route = route(GET("/"),
 				req -> Response.ok().body(fromObject("Sample")))
@@ -82,14 +83,15 @@ public class DemoLambdaRoutingApplication {
 		RouterFunction<?> methodReference = route(GET("/person/{id}"), ph::findPerson)
 				.and(route(GET("/person"), ph::findAll));
 
-		ReactorHttpHandlerAdapter httpHandlerAdapter = new ReactorHttpHandlerAdapter(
-				toHttpHandler(route.and(reactiveRoute).and(sseRoute).and(methodReference)
-						.filter((req, next) -> {
-							System.out.println("==== Before... " + req.uri());
-							Response<?> res = next.handle(req);
-							System.out.println("==== After... " + req.uri());
-							return res;
-						})));
-		return httpHandlerAdapter;
+		// Composed and Filter
+		RouterFunction<?> composed = route.and(reactiveRoute).and(sseRoute)
+				.and(methodReference).filter((req, next) -> {
+					System.out.println("==== Before... " + req.uri());
+					Response<?> res = next.handle(req);
+					System.out.println("==== After... " + req.uri());
+					return res;
+				});
+
+		return toHttpHandler(composed);
 	}
 }

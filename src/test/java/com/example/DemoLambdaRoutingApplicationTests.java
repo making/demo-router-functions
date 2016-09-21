@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.http.server.reactive.ReactorHttpHandlerAdapter;
 import org.springframework.util.SocketUtils;
 import org.springframework.web.client.reactive.WebClient;
 import reactor.core.publisher.Flux;
@@ -28,7 +29,8 @@ public class DemoLambdaRoutingApplicationTests {
 		webClient = new WebClient(new ReactorClientHttpConnector());
 		port = SocketUtils.findAvailableTcpPort();
 		HttpServer httpServer = HttpServer.create("0.0.0.0", port);
-		httpServer.startAndAwait(DemoLambdaRoutingApplication.httpHandlerAdapter());
+		httpServer.startAndAwait(new ReactorHttpHandlerAdapter(
+				DemoLambdaRoutingApplication.httpHandler()));
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			System.out.println("Shut down ...");
 			httpServer.shutdown();
