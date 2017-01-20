@@ -37,8 +37,8 @@ public class DemoLambdaRoutingApplicationTests {
 		webClient = WebClient.builder(new ReactorClientHttpConnector()).build();
 		port = SocketUtils.findAvailableTcpPort();
 		host = "localhost";
-		port = 80;
-		host = "demo-router-functions.cfapps.io";
+		// port = 80;
+		// host = "demo-router-functions.cfapps.io";
 
 		if ("localhost".equals(host)) {
 			HttpServer httpServer = HttpServer.create("0.0.0.0", port);
