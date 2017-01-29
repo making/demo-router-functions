@@ -1,14 +1,12 @@
 package com.example;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.web.reactive.function.client.ClientRequest.GET;
-import static org.springframework.web.reactive.function.client.ClientRequest.POST;
+import static org.springframework.web.reactive.function.BodyInserters.fromObject;
 
 import java.util.Iterator;
 import java.util.stream.Collectors;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.core.ResolvableType;
 import org.springframework.http.HttpStatus;
@@ -20,6 +18,8 @@ import org.springframework.util.SocketUtils;
 import org.springframework.web.reactive.function.BodyExtractors;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientOperations;
+import org.springframework.web.util.DefaultUriBuilderFactory;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -28,13 +28,13 @@ import reactor.ipc.netty.http.server.HttpServer;
 
 // TODO use TestSubscriber
 public class DemoLambdaRoutingApplicationTests {
-	static WebClient webClient;
+	static WebClientOperations operations;
 	static int port;
 	static String host;
 
 	@BeforeClass
 	public static void setup() throws Exception {
-		webClient = WebClient.builder(new ReactorClientHttpConnector()).build();
+
 		port = SocketUtils.findAvailableTcpPort();
 		host = "localhost";
 		// port = 80;
@@ -50,13 +50,16 @@ public class DemoLambdaRoutingApplicationTests {
 			}));
 			handler.block();
 		}
+
+		WebClient webClient = WebClient.builder(new ReactorClientHttpConnector()).build();
+		operations = WebClientOperations.builder(webClient).uriBuilderFactory(
+				new DefaultUriBuilderFactory(String.format("http://%s:%d", host, port)))
+				.build();
 	}
 
 	@Test
-	@Ignore
 	public void root() {
-		Mono<ClientResponse> result = webClient
-				.exchange(GET("http://{host}:{port}", host, port).build());
+		Mono<ClientResponse> result = operations.get().uri("/").exchange();
 
 		assertThat(result.block().bodyToMono(String.class).block()).isEqualTo("Sample");
 		assertThat(result.block().statusCode()).isEqualTo(HttpStatus.OK);
@@ -64,8 +67,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void hello() {
-		Mono<ClientResponse> result = webClient
-				.exchange(GET("http://{host}:{port}/hello", host, port).build());
+		Mono<ClientResponse> result = operations.get().uri("/hello").exchange();
 
 		assertThat(result.block().bodyToMono(String.class).block())
 				.isEqualTo("Hello World!");
@@ -74,23 +76,21 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void bar() {
-		Mono<ClientResponse> result1 = webClient
-				.exchange(GET("http://{host}:{port}/bar", host, port).build());
-		// Mono<ClientResponse> result2 = webClient
-		// .exchange(GET("http://{host}:{port}/bar?foo=abc", port).build());
+		Mono<ClientResponse> result1 = operations.get().uri("/bar").exchange();
+		Mono<ClientResponse> result2 = operations.get()
+				.uri(b -> b.uriString("/bar").queryParam("foo", "abc").build())
+				.exchange();
 
 		assertThat(result1.block().bodyToMono(String.class).block())
 				.isEqualTo("query[foo] = ???");
-		// assertThat(result2.block().bodyToMono(String.class).block())
-		// .isEqualTo("query[foo] = abc");
+		assertThat(result2.block().bodyToMono(String.class).block())
+				.isEqualTo("query[foo] = abc");
 	}
 
 	@Test
-	@Ignore
 	public void json() {
-		Mono<ClientResponse> result = webClient
-				.exchange(GET("http://{host}:{port}/json", host, port)
-						.accept(MediaType.APPLICATION_JSON).build());
+		Mono<ClientResponse> result = operations.get().uri("/json")
+				.accept(MediaType.APPLICATION_JSON).exchange();
 
 		assertThat(result.block().bodyToMono(Person.class).block())
 				.isEqualTo(new Person("John", 30));
@@ -101,8 +101,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void reactive() {
-		Flux<String> result = webClient
-				.exchange(GET("http://{host}:{port}/reactive", host, port).build())
+		Flux<String> result = operations.get().uri("/reactive").exchange()
 				.flatMap(res -> res.bodyToFlux(String.class));
 
 		Iterable<String> iterable = result.toIterable();
@@ -111,14 +110,10 @@ public class DemoLambdaRoutingApplicationTests {
 				.isEqualTo("HelloWorld");
 	}
 
-	@Ignore
 	@Test
 	public void echo() {
-		Flux<String> result = webClient
-				.exchange(POST("http://{host}:{port}/echo", host, port)
-						.body(Mono.just("abc"), String.class))
+		Flux<String> result = operations.post().uri("/echo").exchange(fromObject("abc"))
 				.flatMap(res -> res.bodyToFlux(String.class));
-
 		Iterable<String> iterable = result.toIterable();
 		Iterator<String> iterator = iterable.iterator();
 		assertThat(iterator.next()).isEqualTo("Hi ");
@@ -127,9 +122,8 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void postJson() {
-		Mono<ClientResponse> result = webClient
-				.exchange(POST("http://{host}:{port}/json", host, port)
-						.body(Mono.just(new Person("Josh", 20)), Person.class));
+		Mono<ClientResponse> result = operations.post().uri("/json")
+				.exchange(fromObject(new Person("Josh", 20)));
 
 		assertThat(result.block().bodyToMono(Person.class).block())
 				.isEqualTo(new Person("Josh", 20));
@@ -138,11 +132,9 @@ public class DemoLambdaRoutingApplicationTests {
 				.isEqualTo(MediaType.APPLICATION_JSON_UTF8);
 	}
 
-	@Ignore
 	@Test
 	public void sse() throws Exception {
-		Flux<ServerSentEvent<String>> result = webClient
-				.exchange(GET("http://{host}:{port}/sse", host, port).build())
+		Flux<ServerSentEvent<String>> result = operations.get().uri("/sse").exchange()
 				.flatMap(res -> res.body(BodyExtractors.toFlux(ResolvableType
 						.forClassWithGenerics(ServerSentEvent.class, String.class))));
 
@@ -173,8 +165,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void person() {
-		Mono<ClientResponse> result = webClient
-				.exchange(GET("http://{host}:{port}/person/1", host, port).build());
+		Mono<ClientResponse> result = operations.get().uri("/person/1").exchange();
 
 		assertThat(result.block().bodyToMono(Person.class).block())
 				.isEqualTo(new Person("P1", 10));
@@ -185,8 +176,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void people() {
-		Flux<Person> result = webClient
-				.exchange(GET("http://{host}:{port}/person", host, port).build())
+		Flux<Person> result = operations.get().uri("/person").exchange()
 				.flatMap(res -> res.bodyToFlux(Person.class));
 
 		Iterable<Person> iterable = result.toIterable();
