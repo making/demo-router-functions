@@ -78,7 +78,7 @@ public class DemoLambdaRoutingApplicationTests {
 	public void bar() {
 		Mono<ClientResponse> result1 = operations.get().uri("bar").exchange();
 		Mono<ClientResponse> result2 = operations.get()
-				.uri(b -> b.uriString("bar").queryParam("foo", "abc").build()).exchange();
+				.uri(f -> f.uriString("bar").queryParam("foo", "abc").build()).exchange();
 
 		assertThat(result1.block().bodyToMono(String.class).block())
 				.isEqualTo("query[foo] = ???");
