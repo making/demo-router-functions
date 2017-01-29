@@ -59,7 +59,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void root() {
-		Mono<ClientResponse> result = operations.get().uri("/").exchange();
+		Mono<ClientResponse> result = operations.get().uri("").exchange();
 
 		assertThat(result.block().bodyToMono(String.class).block()).isEqualTo("Sample");
 		assertThat(result.block().statusCode()).isEqualTo(HttpStatus.OK);
@@ -67,7 +67,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void hello() {
-		Mono<ClientResponse> result = operations.get().uri("/hello").exchange();
+		Mono<ClientResponse> result = operations.get().uri("hello").exchange();
 
 		assertThat(result.block().bodyToMono(String.class).block())
 				.isEqualTo("Hello World!");
@@ -76,10 +76,9 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void bar() {
-		Mono<ClientResponse> result1 = operations.get().uri("/bar").exchange();
+		Mono<ClientResponse> result1 = operations.get().uri("bar").exchange();
 		Mono<ClientResponse> result2 = operations.get()
-				.uri(b -> b.uriString("/bar").queryParam("foo", "abc").build())
-				.exchange();
+				.uri(b -> b.uriString("bar").queryParam("foo", "abc").build()).exchange();
 
 		assertThat(result1.block().bodyToMono(String.class).block())
 				.isEqualTo("query[foo] = ???");
@@ -89,7 +88,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void json() {
-		Mono<ClientResponse> result = operations.get().uri("/json")
+		Mono<ClientResponse> result = operations.get().uri("json")
 				.accept(MediaType.APPLICATION_JSON).exchange();
 
 		assertThat(result.block().bodyToMono(Person.class).block())
@@ -101,7 +100,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void reactive() {
-		Flux<String> result = operations.get().uri("/reactive").exchange()
+		Flux<String> result = operations.get().uri("reactive").exchange()
 				.flatMap(res -> res.bodyToFlux(String.class));
 
 		Iterable<String> iterable = result.toIterable();
@@ -112,7 +111,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void echo() {
-		Flux<String> result = operations.post().uri("/echo").exchange(fromObject("abc"))
+		Flux<String> result = operations.post().uri("echo").exchange(fromObject("abc"))
 				.flatMap(res -> res.bodyToFlux(String.class));
 		Iterable<String> iterable = result.toIterable();
 		Iterator<String> iterator = iterable.iterator();
@@ -122,7 +121,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void postJson() {
-		Mono<ClientResponse> result = operations.post().uri("/json")
+		Mono<ClientResponse> result = operations.post().uri("json")
 				.exchange(fromObject(new Person("Josh", 20)));
 
 		assertThat(result.block().bodyToMono(Person.class).block())
@@ -134,7 +133,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void sse() throws Exception {
-		Flux<ServerSentEvent<String>> result = operations.get().uri("/sse").exchange()
+		Flux<ServerSentEvent<String>> result = operations.get().uri("sse").exchange()
 				.flatMap(res -> res.body(BodyExtractors.toFlux(ResolvableType
 						.forClassWithGenerics(ServerSentEvent.class, String.class))));
 
@@ -165,7 +164,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void person() {
-		Mono<ClientResponse> result = operations.get().uri("/person/1").exchange();
+		Mono<ClientResponse> result = operations.get().uri("person/1").exchange();
 
 		assertThat(result.block().bodyToMono(Person.class).block())
 				.isEqualTo(new Person("P1", 10));
@@ -176,7 +175,7 @@ public class DemoLambdaRoutingApplicationTests {
 
 	@Test
 	public void people() {
-		Flux<Person> result = operations.get().uri("/person").exchange()
+		Flux<Person> result = operations.get().uri("person").exchange()
 				.flatMap(res -> res.bodyToFlux(Person.class));
 
 		Iterable<Person> iterable = result.toIterable();
