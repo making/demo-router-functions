@@ -33,7 +33,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>spring-web-reactive</artifactId>
+			<artifactId>spring-webflux</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
