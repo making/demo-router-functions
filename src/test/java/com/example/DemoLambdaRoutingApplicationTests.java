@@ -49,7 +49,7 @@ public class DemoLambdaRoutingApplicationTests {
 			handler.block();
 		}
 
-		webClient = WebClient.builder(String.format("http://%s:%d", host, port))
+		webClient = WebClient.builder().baseUrl(String.format("http://%s:%d", host, port))
 				.clientConnector(new ReactorClientHttpConnector()).build();
 	}
 
@@ -74,7 +74,7 @@ public class DemoLambdaRoutingApplicationTests {
 	public void bar() {
 		Mono<ClientResponse> result1 = webClient.get().uri("bar").exchange();
 		Mono<ClientResponse> result2 = webClient.get()
-				.uri(f -> f.uriString("bar").queryParam("foo", "abc").build()).exchange();
+				.uri(f -> f.path("bar").queryParam("foo", "abc").build()).exchange();
 
 		assertThat(result1.block().bodyToMono(String.class).block())
 				.isEqualTo("query[foo] = ???");
